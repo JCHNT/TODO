@@ -1,50 +1,20 @@
 input {
   jdbc {
+    # Utilisez le chemin trouvé avec la commande find
     jdbc_driver_library => "/opt/logstash/vendor/jdbc/postgresql-42.5.0.jar"
     jdbc_driver_class => "org.postgresql.Driver"
     jdbc_connection_string => "jdbc:postgresql://oscar-test.unilim.fr:5432/oscar"
     jdbc_user => "oscar"
     jdbc_password => "oscar"
-    schedule => "0 * * * *"
-    statement => "SELECT * FROM activity_discipline"
-    type => "activity_discipline"
-  }
-  
-  jdbc {
-    jdbc_driver_library => "/opt/logstash/vendor/jdbc/postgresql-42.5.0.jar"
-    jdbc_driver_class => "org.postgresql.Driver"
-    jdbc_connection_string => "jdbc:postgresql://oscar-test.unilim.fr:5432/oscar"
-    jdbc_user => "oscar"
-    jdbc_password => "oscar"
-    schedule => "0 * * * *"
-    statement => "SELECT * FROM activitypayment"
-    type => "activitypayment"
+    statement => "SELECT * FROM activity_discipline LIMIT 5"
+    schedule => "* * * * *"
   }
 }
-
-filter {
-  if [type] == "activity_discipline" {
-    mutate {
-      add_field => { "[metadata][index]" => "oscar_activity_discipline" }
-    }
-  }
-  
-  if [type] == "activitypayment" {
-    mutate {
-      add_field => { "[metadata][index]" => "oscar_activitypayment" }
-    }
-    
-    convert => {
-      "amount" => "float"
-      "rate" => "float"
-    }
-  }
-}
-
 output {
   elasticsearch {
     hosts => ["http://164.81.15.118:9200"]
-    index => "%{[metadata][index]}_%{+YYYY.MM.dd}"
-    document_id => "%{id}"
+    index => "test_debug"
   }
+  # Ajout d'une sortie stdout pour voir les données
+  stdout { codec => rubydebug }
 }
