@@ -1,0 +1,98 @@
+input {
+  # Configuration pour la table activity_discipline
+  jdbc {
+    jdbc_driver_library => "/opt/logstash/vendor/jdbc/postgresql-42.5.0.jar"
+    jdbc_driver_class => "org.postgresql.Driver"
+    jdbc_connection_string => "jdbc:postgresql://oscar-test.unilim.fr:5432/oscar"
+    jdbc_user => "oscar"
+    jdbc_password => "oscar"
+    
+    # Planification de l'exécution (toutes les heures)
+    schedule => "0 * * * *"
+    
+    # Requête SQL simple sans condition de date
+    statement => "SELECT * FROM activity_discipline"
+    
+    # Identifiant unique pour cette source
+    jdbc_default_timezone => "UTC"
+    type => "activity_discipline"
+  }
+  
+  # Configuration pour la table activitypayment
+  jdbc {
+    jdbc_driver_library => "/opt/logstash/vendor/jdbc/postgresql-42.5.0.jar"
+    jdbc_driver_class => "org.postgresql.Driver"
+    jdbc_connection_string => "jdbc:postgresql://oscar-test.unilim.fr:5432/oscar"
+    jdbc_user => "oscar"
+    jdbc_password => "oscar"
+    
+    # Planification de l'exécution (toutes les heures)
+    schedule => "0 * * * *"
+    
+    # Requête SQL simple
+    statement => "SELECT * FROM activitypayment"
+    
+    # Identifiant unique pour cette source
+    jdbc_default_timezone => "UTC"
+    type => "activitypayment"
+  }
+}
+
+filter {
+  # Filtres pour la table activity_discipline
+  if [type] == "activity_discipline" {
+    mutate {
+      add_field => { "[metadata][index]" => "oscar_activity_discipline" }
+    }
+  }
+  
+  # Filtres pour la table activitypayment
+  if [type] == "activitypayment" {
+    mutate {
+      add_field => { "[metadata][index]" => "oscar_activitypayment" }
+    }
+    
+    # Conversion des champs numériques
+    convert => {
+      "amount" => "float"
+      "rate" => "float"
+    }
+    
+    # Conversion des timestamps en format ISO
+    date {
+      match => ["datecreated", "ISO8601"]
+      target => "datecreated"
+      tag_on_failure => []
+    }
+    
+    date {
+      match => ["dateupdated", "ISO8601"]
+      target => "dateupdated"
+      tag_on_failure => []
+    }
+    
+    date {
+      match => ["datedeleted", "ISO8601"]
+      target => "datedeleted"
+      tag_on_failure => []
+    }
+  }
+}
+
+output {
+  # Sortie vers Elasticsearch avec HTTPS
+  elasticsearch {
+    hosts => ["https://164.81.15.118:9200"]
+    sniffing => false
+    index => "%{[metadata][index]}_%{+YYYY.MM.dd}"
+    document_id => "%{id}"
+    
+    # Configuration SSL/TLS
+    ssl => true
+    ssl_certificate_verification => true
+    # Décommentez les lignes suivantes si vous avez des certificats personnalisés
+    # cacert => "/chemin/vers/ca.crt"
+    # user => "elastic_username"  # Si authentification activée
+    # password => "elastic_password"  # Si authentification activée
+  }
+}
