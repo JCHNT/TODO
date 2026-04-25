@@ -1,28 +1,23 @@
-import React from 'react';
-import { Square, SquareDot } from 'lucide-react';
-
 interface ProgressBarProps {
   completed: number;
   total: number;
 }
 
 export function ProgressBar({ completed, total }: ProgressBarProps) {
-  const percentage = Math.round((completed / total) * 100);
-  const blocks = 5;
-  const filledBlocks = Math.round((percentage / 100) * blocks);
+  if (total === 0) return null;
+  const pct = Math.round((completed / total) * 100);
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-1">
-        {Array.from({ length: blocks }).map((_, i) => (
-          i < filledBlocks ? (
-            <SquareDot key={i} className="w-6 h-6 text-blue-600" />
-          ) : (
-            <Square key={i} className="w-6 h-6 text-gray-300" />
-          )
-        ))}
+    <div className="flex items-center gap-3">
+      <div className="flex-1 bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden">
+        <div
+          className="h-full bg-blue-500 rounded-full transition-all duration-500"
+          style={{ width: `${pct}%` }}
+        />
       </div>
-      <span className="text-sm text-gray-600">{percentage}% completed</span>
+      <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums whitespace-nowrap">
+        {completed}/{total}
+      </span>
     </div>
   );
 }
