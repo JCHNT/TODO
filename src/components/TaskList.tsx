@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Task, ViewMode, TimeView } from '../types';
 import { TaskCard } from './TaskCard';
-import { Calendar, List } from 'lucide-react';
+import { CalendarView } from './CalendarView';
+import { KanbanView } from './KanbanView';
+import { ClipboardList } from 'lucide-react';
 
 interface TaskListProps {
   tasks: Task[];
@@ -9,6 +11,7 @@ interface TaskListProps {
   timeView: TimeView;
   onTaskUpdate: (task: Task) => void;
   onTaskDelete: (taskId: string) => void;
+  onTaskReorder: (draggedId: string, targetId: string) => void;
 }
 
 export function TaskList({
@@ -16,53 +19,49 @@ export function TaskList({
   viewMode,
   timeView,
   onTaskUpdate,
-  onTaskDelete
+  onTaskDelete,
+  onTaskReorder,
 }: TaskListProps) {
-  const handleDragStart = (e: React.DragEvent, taskId: string) => {
-    e.dataTransfer.setData('taskId', taskId);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = (e: React.DragEvent, targetTaskId: string) => {
-    e.preventDefault();
-    const draggedTaskId = e.dataTransfer.getData('taskId');
-    if (draggedTaskId === targetTaskId) return;
-
-    const draggedTask = tasks.find(t => t.id === draggedTaskId);
-    const targetTask = tasks.find(t => t.id === targetTaskId);
-    if (!draggedTask || !targetTask) return;
-
-    const newOrder = targetTask.order;
-    onTaskUpdate({ ...draggedTask, order: newOrder });
-  };
+  const draggedId = useRef<string | null>(null);
 
   if (viewMode === 'calendar') {
+    return <CalendarView tasks={tasks} timeView={timeView} onTaskUpdate={onTaskUpdate} />;
+  }
+
+  if (viewMode === 'kanban') {
     return (
-      <div className="grid grid-cols-7 gap-2">
-        {/* Calendar view implementation */}
-        {/* This would show tasks organized by date */}
+      <KanbanView tasks={tasks} onTaskUpdate={onTaskUpdate} onTaskDelete={onTaskDelete} />
+    );
+  }
+
+  if (tasks.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-slate-400 dark:text-slate-500">
+        <ClipboardList className="w-10 h-10 mb-3 opacity-40" />
+        <p className="text-sm">Aucune tâche trouvée</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {tasks.map(task => (
         <div
           key={task.id}
           draggable
-          onDragStart={(e) => handleDragStart(e, task.id)}
-          onDragOver={handleDragOver}
-          onDrop={(e) => handleDrop(e, task.id)}
+          onDragStart={() => {
+            draggedId.current = task.id;
+          }}
+          onDragOver={e => e.preventDefault()}
+          onDrop={() => {
+            if (draggedId.current && draggedId.current !== task.id) {
+              onTaskReorder(draggedId.current, task.id);
+              draggedId.current = null;
+            }
+          }}
+          className="cursor-grab active:cursor-grabbing"
         >
-          <TaskCard
-            task={task}
-            onUpdate={onTaskUpdate}
-            onDelete={onTaskDelete}
-          />
+          <TaskCard task={task} onUpdate={onTaskUpdate} onDelete={onTaskDelete} />
         </div>
       ))}
     </div>
