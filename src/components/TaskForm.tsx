@@ -1,6 +1,6 @@
 import React from 'react';
-import { Calendar, Clock, Tag as TagIcon, AlertCircle } from 'lucide-react';
-import { TaskFormData, Priority } from '../types';
+import { Calendar, Clock, Tag as TagIcon, AlertCircle, Plus, X, ListChecks } from 'lucide-react';
+import { TaskFormData, Priority, Subtask } from '../types';
 
 const INPUT =
   'w-full px-3 py-2 border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm';
@@ -23,20 +23,43 @@ export function TaskForm({ initialData, onSubmit, onCancel }: TaskFormProps) {
       description: '',
       priority: 'medium',
       tags: [],
+      subtasks: [],
       deadline: new Date(),
-    }
+    },
   );
 
   const set = (patch: Partial<TaskFormData>) => setFormData(prev => ({ ...prev, ...patch }));
 
+  const addSubtask = () => {
+    set({
+      subtasks: [
+        ...formData.subtasks,
+        { id: crypto.randomUUID(), title: '', done: false },
+      ],
+    });
+  };
+
+  const updateSubtask = (id: string, title: string) => {
+    set({ subtasks: formData.subtasks.map(s => (s.id === id ? { ...s, title } : s)) });
+  };
+
+  const removeSubtask = (id: string) => {
+    set({ subtasks: formData.subtasks.filter(s => s.id !== id) });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title.trim()) return;
-    onSubmit({ ...formData, title: formData.title.trim() });
+    onSubmit({
+      ...formData,
+      title: formData.title.trim(),
+      subtasks: formData.subtasks.filter(s => s.title.trim()),
+    });
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Title */}
       <div>
         <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
           Titre
@@ -52,6 +75,7 @@ export function TaskForm({ initialData, onSubmit, onCancel }: TaskFormProps) {
         />
       </div>
 
+      {/* Description */}
       <div>
         <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
           Description
@@ -65,6 +89,7 @@ export function TaskForm({ initialData, onSubmit, onCancel }: TaskFormProps) {
         />
       </div>
 
+      {/* Deadline + Reminder */}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="flex items-center gap-1.5 text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
@@ -91,6 +116,7 @@ export function TaskForm({ initialData, onSubmit, onCancel }: TaskFormProps) {
         </div>
       </div>
 
+      {/* Priority + Tags */}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="flex items-center gap-1.5 text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
@@ -122,7 +148,43 @@ export function TaskForm({ initialData, onSubmit, onCancel }: TaskFormProps) {
         </div>
       </div>
 
-      <div className="flex justify-end gap-3 pt-2">
+      {/* Subtasks */}
+      <div>
+        <label className="flex items-center gap-1.5 text-sm font-medium mb-2 text-slate-700 dark:text-slate-300">
+          <ListChecks className="w-3.5 h-3.5" /> Sous-tâches
+        </label>
+        <div className="space-y-2">
+          {formData.subtasks.map(subtask => (
+            <div key={subtask.id} className="flex items-center gap-2">
+              <input
+                type="text"
+                value={subtask.title}
+                onChange={e => updateSubtask(subtask.id, e.target.value)}
+                placeholder="Intitulé de la sous-tâche…"
+                className={INPUT + ' flex-1'}
+              />
+              <button
+                type="button"
+                onClick={() => removeSubtask(subtask.id)}
+                className="p-1.5 text-slate-400 hover:text-red-500 transition-colors rounded"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={addSubtask}
+            className="flex items-center gap-1.5 text-sm text-blue-500 hover:text-blue-600 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Ajouter une sous-tâche
+          </button>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex justify-end gap-3 pt-2 border-t border-slate-100 dark:border-slate-700">
         <button
           type="button"
           onClick={onCancel}

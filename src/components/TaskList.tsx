@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { Task, ViewMode, TimeView } from '../types';
 import { TaskCard } from './TaskCard';
 import { CalendarView } from './CalendarView';
+import { KanbanView } from './KanbanView';
 import { ClipboardList } from 'lucide-react';
 
 interface TaskListProps {
@@ -25,6 +26,12 @@ export function TaskList({
 
   if (viewMode === 'calendar') {
     return <CalendarView tasks={tasks} timeView={timeView} onTaskUpdate={onTaskUpdate} />;
+  }
+
+  if (viewMode === 'kanban') {
+    return (
+      <KanbanView tasks={tasks} onTaskUpdate={onTaskUpdate} onTaskDelete={onTaskDelete} />
+    );
   }
 
   if (tasks.length === 0) {

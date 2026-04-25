@@ -14,6 +14,7 @@ import {
 import { TaskForm } from './TaskForm';
 import { triggerConfetti } from '../utils/confetti';
 import { namesToTags } from '../utils/tags';
+import { relativeDate } from '../utils/dates';
 
 const PRIORITY_BORDER: Record<string, string> = {
   high: 'border-l-red-400',
@@ -50,6 +51,8 @@ export function TaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
   const [pendingDelete, setPendingDelete] = useState(false);
 
   const isOverdue = task.status !== 'done' && task.deadline < new Date();
+  const doneSubtasks = task.subtasks.filter(s => s.done).length;
+  const totalSubtasks = task.subtasks.length;
 
   const handleStatusCycle = useCallback(() => {
     const next = STATUS_CYCLE[task.status];
@@ -60,6 +63,18 @@ export function TaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
     });
     if (next === 'done') triggerConfetti();
   }, [task, onUpdate]);
+
+  const handleToggleSubtask = useCallback(
+    (subtaskId: string) => {
+      onUpdate({
+        ...task,
+        subtasks: task.subtasks.map(s =>
+          s.id === subtaskId ? { ...s, done: !s.done } : s,
+        ),
+      });
+    },
+    [task, onUpdate],
+  );
 
   const handleDelete = useCallback(() => {
     if (pendingDelete) {
@@ -79,6 +94,7 @@ export function TaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
             description: task.description,
             priority: task.priority,
             tags: task.tags.map(t => t.name),
+            subtasks: task.subtasks,
             deadline: task.deadline,
             reminder: task.reminder,
           }}
@@ -108,6 +124,7 @@ export function TaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
         isOverdue ? 'ring-1 ring-red-300 dark:ring-red-800/60' : ''
       }`}
     >
+      {/* Header row */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 min-w-0">
           <button
@@ -175,20 +192,66 @@ export function TaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
         </div>
       </div>
 
+      {/* Subtasks */}
+      {totalSubtasks > 0 && (
+        <div className="mt-3 pl-8">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="flex-1 h-1 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-blue-400 rounded-full transition-all duration-300"
+                style={{ width: `${(doneSubtasks / totalSubtasks) * 100}%` }}
+              />
+            </div>
+            <span className="text-xs text-slate-400 dark:text-slate-500 tabular-nums">
+              {doneSubtasks}/{totalSubtasks}
+            </span>
+          </div>
+          <div className="space-y-1.5">
+            {task.subtasks.map(subtask => (
+              <button
+                key={subtask.id}
+                onClick={() => handleToggleSubtask(subtask.id)}
+                className="flex items-center gap-2 w-full text-left group/sub"
+              >
+                {subtask.done ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                ) : (
+                  <Circle className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600 group-hover/sub:text-slate-400 flex-shrink-0 transition-colors" />
+                )}
+                <span
+                  className={`text-xs ${
+                    subtask.done
+                      ? 'line-through text-slate-400 dark:text-slate-500'
+                      : 'text-slate-600 dark:text-slate-400'
+                  }`}
+                >
+                  {subtask.title}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Footer metadata */}
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-500 dark:text-slate-400">
-        <span className={`flex items-center gap-1.5 ${isOverdue ? 'text-red-500 dark:text-red-400' : ''}`}>
-          <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
-          {task.deadline.toLocaleDateString('fr-FR', {
+        <span
+          className={`flex items-center gap-1.5 ${isOverdue ? 'text-red-500 dark:text-red-400' : ''}`}
+          title={task.deadline.toLocaleDateString('fr-FR', {
+            weekday: 'long',
             day: 'numeric',
-            month: 'short',
+            month: 'long',
             year: 'numeric',
           })}
+        >
+          <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+          {relativeDate(task.deadline)}
         </span>
 
         {task.reminder && (
           <span className="flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-            {task.reminder.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+            {relativeDate(task.reminder)}
           </span>
         )}
 
